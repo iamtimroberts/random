@@ -1,0 +1,192 @@
+###
+version: '2'
+services:
+    # ----------------------------------------
+    # NETDATA
+    # ----------------------------------------
+    netdata:
+        image: titpetric/netdata
+        container_name: netdata
+        restart: unless-stopped
+        network_mode: "bridge"
+        ports:
+            - 19999:19999
+        cap_add:
+            - SYS_PTRACE    
+        volumes:
+            - '/proc:/host/proc:ro'
+            - '/sys:/host/sys:ro'
+            - '/var/run/docker.sock:/var/run/docker.sock'
+    # ----------------------------------------
+    # PLEX
+    # ----------------------------------------
+    plex:
+        container_name: plex
+        image: linuxserver/plex:latest
+        restart: unless-stopped
+        network_mode: "host"
+        ports:
+            - 32400:32400/tcp
+        environment:
+            - PLEX_UID=1000 
+            - PLEX_GID=1000
+            - TZ=America/New_York
+        volumes:
+            - /export/nas/Docker/plex2-config:/config
+            - /export/nas/TV:/data/tvshows
+            - /export/nas/Movies:/data/movies
+            - /export/nas/Music:/data/music
+    # ----------------------------------------
+    # PLEXPY
+    # ----------------------------------------
+    plexpy:
+        image: linuxserver/plexpy
+        container_name: plexpy
+        restart: unless-stopped
+        network_mode: "bridge"
+        ports:
+            - 8181:8181
+        environment:
+            - PUID=1000
+            - PGID=1000
+            - TZ=America/New_York
+        volumes:
+            - /export/nas/Docker/plexpy-config:/config
+            - "/export/nas/Docker/plex2-config/Library/Application Support/Plex Media Server/Logs:/logs:ro"
+        depends_on:
+            - plex
+    # ----------------------------------------
+    # PORTAINER
+    # ----------------------------------------
+    portainer:
+        image: portainer/portainer:latest
+        container_name: portainer
+        restart: unless-stopped
+        network_mode: "bridge"
+        ports:
+            - 9000:9000
+        environment:
+            - PGID=1000
+            - PUID=1000
+        volumes:
+            - /export/nas/Docker/portainer-config:/data
+            - '/var/run/docker.sock:/var/run/docker.sock'
+            - '/etc/localtime:/etc/localtime:ro'
+    # ----------------------------------------
+    # RADARR
+    # ----------------------------------------
+    radarr:
+        image: linuxserver/radarr
+        container_name: radarr
+        restart: unless-stopped
+        network_mode: "bridge"
+        ports:
+            - 7878:7878
+        environment:
+            - PUID=1000
+            - PGID=1000
+            - TZ=America/New_York
+        volumes:
+            - /export/nas/Docker/radarr-config:/config
+            - /export/nas/Torrents/Download:/downloads
+            - /export/nas/Movies:/movies
+    # ----------------------------------------
+    # SONARR
+    # ----------------------------------------
+    sonarr:
+        image: linuxserver/sonarr
+        container_name: sonarr
+        restart: unless-stopped
+        network_mode: "bridge"
+        ports:
+            - 8989:8989
+        environment:
+            - PUID=1000
+            - PGID=1000
+            - TZ=America/New_York
+        volumes:
+            - /export/nas/Docker/sonarr-config:/config
+            - /export/nas/Torrents/Download:/downloads
+            - /export/nas/TV:/tv
+    # ----------------------------------------
+    # SABNZBD
+    # ----------------------------------------
+    sabnzbd:
+        image: linuxserver/sabnzbd
+        container_name: sabnzbd
+        restart: unless-stopped
+        network_mode: "bridge"
+        ports:
+            - 8080:8080
+            - 9090:9090
+        environment:
+            - PUID=1000
+            - PGID=1000
+            - TZ=America/New_York
+        volumes:
+            - /export/nas/Docker/sabnzbd-config:/config
+            - /export/nas/Torrents/Download:/downloads
+            - /export/nas/Torrents/Incomplete:/incomplete-downloads
+    # ----------------------------------------
+    # OMBI
+    # ----------------------------------------
+    ombi:
+        image: linuxserver/ombi
+        container_name: ombi
+        restart: unless-stopped
+        network_mode: "bridge"
+        ports:
+            - 3579:3579
+        environment:
+            - PUID=1000
+            - PGID=1000
+            - TZ=America/New_York
+        volumes:
+            - /export/nas/Docker/ombi-config:/config
+    # ----------------------------------------
+    # HTPC-Manager
+    # ----------------------------------------
+    htpcmanager:
+        image: linuxserver/htpcmanager
+        container_name: htpcmanager
+        restart: unless-stopped
+        network_mode: "bridge"
+        ports:
+            - 8085:8085
+        environment:
+            - PUID=1000
+            - PGID=1000
+            - TZ=America/New_York
+        volumes:
+            - /export/nas/Docker/htpcmanager-config:/config
+    # ----------------------------------------
+    # HEADPHONES
+    # ----------------------------------------
+    headphones:
+        image: linuxserver/headphones
+        container_name: headphones
+        restart: unless-stopped
+        network_mode: "bridge"
+        ports:
+            - 8282:8282
+        environment:
+            - PUID=1000
+            - PGID=1000
+            - TZ=America/New_York
+        volumes:
+            - /export/nas/Docker/headphones-config:/config
+            - /export/nas/Torrents/Downloads:/downloads
+            - /export/nas/Music:/music
+    # ----------------------------------------
+    # WATCHTOWER
+    # ----------------------------------------
+    watchtower:
+        image: v2tec/watchtower
+        container_name: watchtower
+        restart: unless-stopped
+        environment:
+            - TZ=America/New_York
+        network_mode: "bridge"
+        volumes:
+            - '/var/run/docker.sock:/var/run/docker.sock'
+        command: portainer --schedule  '0 0 3 * * *' --cleanup
